@@ -11,5 +11,3 @@ git pull -u TrabajIrin1 master
 git add.
 git commit -m ""
 git push -u TrabajIrin1 master
-
-ja xd lol
