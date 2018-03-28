@@ -295,10 +295,10 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 
 /* Direction angle changes between +45º & -45º */
   if(aux==1){
-  	m_fActivationTable[un_priority][0] = angle+MOV_ANGLE;
+  	m_fActivationTable[un_priority][0] = angle[0]+MOV_ANGLE;
   	aux=0;
   }else{
-  	m_fActivationTable[un_priority][0] = angle-2*MOV_ANGLE;
+  	m_fActivationTable[un_priority][0] = angle[0]-2*MOV_ANGLE;
   	aux=1;
   }
 
