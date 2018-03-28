@@ -30,13 +30,16 @@ private:
 		CGroundMemorySensor* m_seGroundMemory;
 		CBatterySensor* m_seBattery;   
 		CRealBlueLightSensor* m_seLightblue;
+		CCompassSensor* m_seCompass;  	
+	
 		/* Global Variables */
 		double 		m_fLeftSpeed;
 		double 		m_fRightSpeed;
 		double**	m_fActivationTable;
 		int 			m_nWriteToFile;
 		double 		m_fTime;
-    double    fBattToForageInhibitor;
+    	double    fBattToForageInhibitor;
+	
 		/* Functions */
 
 		void ExecuteBehaviors ( void );
