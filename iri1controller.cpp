@@ -12,9 +12,15 @@
 #include "epuckproximitysensor.h"
 #include "contactsensor.h"
 #include "reallightsensor.h"
+#include "realbluelightsensor.h"
+#include "realredlightsensor.h"
 #include "groundsensor.h"
 #include "groundmemorysensor.h"
 #include "batterysensor.h"
+#include "bluebatterysensor.h"
+#include "redbatterysensor.h"
+#include "encodersensor.h"
+#include "compasssensor.h"
 
 /******************** Actuators ****************/
 #include "wheelsactuator.h"
@@ -48,7 +54,7 @@ using namespace std;
 #define BATTERY_THRESHOLD 0.5
 /* Threshold to reduce the speed of the robot */
 #define NAVIGATE_LIGHT_THRESHOLD 0.9
-
+#define RED_LIGHT_THRESHOLD 0.35
 #define SPEED 500
 
 
@@ -294,6 +300,8 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 
 	/* Leer Sensores de Luz */
 	double* light = m_seLight->GetSensorReading(m_pcEpuck);
+	/* Leer Sensores de Luz */
+	double* lightBlue = m_seLightblue->GetSensorReading(m_pcEpuck);
 
 	double fMaxLight = 0.0;
 	const double* lightDirections = m_seLight->GetSensorDirections();
@@ -306,11 +314,11 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	/* Calc vector Sum */
 	for ( int i = 0 ; i < m_seProx->GetNumberOfInputs() ; i ++ )
 	{
-		vRepelent.x += light[i] * cos ( lightDirections[i] );
-		vRepelent.y += light[i] * sin ( lightDirections[i] );
+		vRepelent.x += lightBlue[i] * cos ( lightDirections[i] );
+		vRepelent.y += lightBlue[i] * sin ( lightDirections[i] );
 
-		if ( light[i] > fMaxLight )
-			fMaxLight = light[i];
+		if ( lightBlue[i] > fMaxLight )
+			fMaxLight = lightBlue[i];
 	}
 	
 	/* Calc pointing angle */
@@ -340,7 +348,7 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	{
 		/* INIT WRITE TO FILE */
 		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
+		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], lightBlue[0], lightBlue[1], lightBlue[2], lightBlue[3], lightBlue[4], lightBlue[5], lightBlue[6], lightBlue[7]);
 		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
 		fclose(fileOutput);
 		/* END WRITE TO FILE */
