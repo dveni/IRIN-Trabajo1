@@ -23,13 +23,18 @@ private:
    
 	 	/* SENSORS */
 		CWheelsActuator* m_acWheels;
-    CEpuckProximitySensor* m_seProx;
+   		CEpuckProximitySensor* m_seProx;
 		CRealLightSensor* m_seLight;
+		CRealBlueLightSensor* m_seBlueLight;
+		CRealRedLightSensor* m_seRedLight;
 		CContactSensor* m_seContact;
 		CGroundSensor* m_seGround;
 		CGroundMemorySensor* m_seGroundMemory;
-		CBatterySensor* m_seBattery;   
+		CBatterySensor* m_seBattery; 
+		CBlueBatterySensor* m_seBlueBattery;  
+		CRedBatterySensor* m_seRedBattery;    
 		CRealBlueLightSensor* m_seLightblue;
+		CEncoderSensor* m_seEncoder; 
 		CCompassSensor* m_seCompass;  	
 	
 		/* Global Variables */
