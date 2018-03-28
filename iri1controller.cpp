@@ -295,10 +295,10 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 
 /* Direction angle changes between +45º & -45º */
   if(aux==1){
-  	m_fActivationTable[un_priority][0] = angle+MOV_ANGLE;
+  	m_fActivationTable[un_priority][0] = angle[0]+MOV_ANGLE;
   	aux=0;
   }else{
-  	m_fActivationTable[un_priority][0] = angle-2*MOV_ANGLE;
+  	m_fActivationTable[un_priority][0] = angle[0]-2*MOV_ANGLE;
   	aux=1;
   }
 
@@ -328,7 +328,7 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	double* battery = m_seBattery->GetSensorReading(m_pcEpuck);
 
 	/* Leer Sensores de Luz */
-	double* light = m_seLight->GetSensorReading(m_pcEpuck)
+	double* light = m_seLight->GetSensorReading(m_pcEpuck);
 
 	double fMaxLight = 0.0;
 	const double* lightDirections = m_seLight->GetSensorDirections();
