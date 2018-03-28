@@ -288,22 +288,11 @@ void CIri1Controller::ObstacleAvoidance ( unsigned int un_priority )
 /******************************************************************************/
 /******************************************************************************/
 
+
 void CIri1Controller::Navigate ( unsigned int un_priority )
 {
-  double* angle = m_seCompass->GetSensorReading(m_pcEpuck);
-  int aux = 0;
-
-/* Direction angle changes between +45º & -45º */
-  if(aux==1){
-  	m_fActivationTable[un_priority][0] = angle[0]+MOV_ANGLE;
-  	aux=0;
-  }else{
-  	m_fActivationTable[un_priority][0] = angle[0]-2*MOV_ANGLE;
-  	aux=1;
-  }
-
   /* Direction Angle 0.0 and always active. We set its vector intensity to 0.5 if used */
-	
+	m_fActivationTable[un_priority][0] = 0.0;
 	m_fActivationTable[un_priority][1] = 0.5;
 	m_fActivationTable[un_priority][2] = 1.0;
 
@@ -324,6 +313,7 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 
 void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 {
+
 	/* Leer Battery Sensores */
 	double* Bluebattery = m_seBlueBattery ->GetSensorReading(m_pcEpuck);
 
@@ -331,7 +321,7 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	double* light = m_seBlueLight->GetSensorReading(m_pcEpuck);
 
 	double fMaxLight = 0.0;
-	const double* lightDirections = m_seLight->GetSensorDirections();
+	const double* lightDirections = m_seBlueLight->GetSensorDirections();
 
   /* We call vRepelent to go similar to Obstacle Avoidance, although it is an aproaching vector */
 	dVector2 vRepelent;
@@ -369,7 +359,6 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
     /* Mark behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
 	}	
-
 	
 	if (m_nWriteToFile ) 
 	{
@@ -432,24 +421,24 @@ void CIri1Controller::Forage ( unsigned int un_priority )
     m_fActivationTable[un_priority][2] = 1.0;
 		
 		/* Go oposite to the light */
-		//if ( ( light[3] * light[4] == 0.0 ) )
-		//{
-			//m_fActivationTable[un_priority][2] = 1.0;
+		if ( ( light[3] * light[4] == 0.0 ) )
+		{
+			m_fActivationTable[un_priority][2] = 1.0;
 
-			//double lightLeft 	= light[0] + light[1] + light[2] + light[3];
-			//double lightRight = light[4] + light[5] + light[6] + light[7];
+			double lightLeft 	= light[0] + light[1] + light[2] + light[3];
+			double lightRight = light[4] + light[5] + light[6] + light[7];
 
-			//if ( lightLeft > lightRight )
-			//{
+			if ( lightLeft > lightRight )
+			{
 				//m_fActivationTable[un_priority][0] = SPEED;
 				//m_fActivationTable[un_priority][1] = -SPEED;
-			//}
-			//else
-			//{
+			}
+			else
+		{
 				//m_fActivationTable[un_priority][0] = -SPEED;
 				//m_fActivationTable[un_priority][1] = SPEED;
-			//}
-		//}
+			}
+		}
 	}
 	if (m_nWriteToFile ) 
 	{
