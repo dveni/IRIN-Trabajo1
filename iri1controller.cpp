@@ -328,7 +328,7 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	double* battery = m_seBattery->GetSensorReading(m_pcEpuck);
 
 	/* Leer Sensores de Luz */
-	double* light = m_seLight->GetSensorReading(m_pcEpuck)
+	double* light = m_seLight->GetSensorReading(m_pcEpuck);
 
 	double fMaxLight = 0.0;
 	const double* lightDirections = m_seLight->GetSensorDirections();
