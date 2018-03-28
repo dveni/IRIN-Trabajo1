@@ -57,6 +57,9 @@ using namespace std;
 #define RED_LIGHT_THRESHOLD 0.35
 #define SPEED 500
 
+/* Movement angle to navigate */
+#define MOV_ANGLE 0.707106781
+
 
 /******************************************************************************/
 /******************************************************************************/
@@ -285,10 +288,9 @@ void CIri1Controller::ObstacleAvoidance ( unsigned int un_priority )
 /******************************************************************************/
 /******************************************************************************/
 
+
 void CIri1Controller::Navigate ( unsigned int un_priority )
 {
-  double* angle = m_seCompass->GetSensorReading(m_pcEpuck);
-
   /* Direction Angle 0.0 and always active. We set its vector intensity to 0.5 if used */
 	m_fActivationTable[un_priority][0] = 0.0;
 	m_fActivationTable[un_priority][1] = 0.5;
@@ -311,16 +313,15 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 
 void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 {
+
 	/* Leer Battery Sensores */
-	double* battery = m_seBattery->GetSensorReading(m_pcEpuck);
+	double* Bluebattery = m_seBlueBattery ->GetSensorReading(m_pcEpuck);
 
 	/* Leer Sensores de Luz */
-	double* light = m_seLight->GetSensorReading(m_pcEpuck);
-	/* Leer Sensores de Luz */
-	double* lightBlue = m_seLightblue->GetSensorReading(m_pcEpuck);
+	double* light = m_seBlueLight->GetSensorReading(m_pcEpuck);
 
 	double fMaxLight = 0.0;
-	const double* lightDirections = m_seLight->GetSensorDirections();
+	const double* lightDirections = m_seBlueLight->GetSensorDirections();
 
   /* We call vRepelent to go similar to Obstacle Avoidance, although it is an aproaching vector */
 	dVector2 vRepelent;
@@ -330,11 +331,11 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	/* Calc vector Sum */
 	for ( int i = 0 ; i < m_seProx->GetNumberOfInputs() ; i ++ )
 	{
-		vRepelent.x += lightBlue[i] * cos ( lightDirections[i] );
-		vRepelent.y += lightBlue[i] * sin ( lightDirections[i] );
+		vRepelent.x +=  light[i] * cos ( lightDirections[i] );
+		vRepelent.y +=  light[i] * sin ( lightDirections[i] );
 
-		if ( lightBlue[i] > fMaxLight )
-			fMaxLight = lightBlue[i];
+		if (  light[i] > fMaxLight )
+			fMaxLight =  light[i];
 	}
 	
 	/* Calc pointing angle */
@@ -347,8 +348,8 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
   m_fActivationTable[un_priority][0] = fRepelent;
   m_fActivationTable[un_priority][1] = fMaxLight;
 
-	/* If battery below a BATTERY_THRESHOLD */
-	if ( battery[0] < BATTERY_THRESHOLD )
+	/* If Bluebattery below a BATTERY_THRESHOLD */
+	if ( Bluebattery[0] < BATTERY_THRESHOLD )
 	{
     /* Inibit Forage */
 		fBattToForageInhibitor = 0.0;
@@ -358,13 +359,12 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
     /* Mark behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
 	}	
-
 	
 	if (m_nWriteToFile ) 
 	{
 		/* INIT WRITE TO FILE */
 		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], lightBlue[0], lightBlue[1], lightBlue[2], lightBlue[3], lightBlue[4], lightBlue[5], lightBlue[6], lightBlue[7]);
+		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, Bluebattery[0],  light[0],  light[1],  light[2],  light[3],  light[4],  light[5],  light[6],  light[7]);
 		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
 		fclose(fileOutput);
 		/* END WRITE TO FILE */
@@ -421,24 +421,24 @@ void CIri1Controller::Forage ( unsigned int un_priority )
     m_fActivationTable[un_priority][2] = 1.0;
 		
 		/* Go oposite to the light */
-		//if ( ( light[3] * light[4] == 0.0 ) )
-		//{
-			//m_fActivationTable[un_priority][2] = 1.0;
+		if ( ( light[3] * light[4] == 0.0 ) )
+		{
+			m_fActivationTable[un_priority][2] = 1.0;
 
-			//double lightLeft 	= light[0] + light[1] + light[2] + light[3];
-			//double lightRight = light[4] + light[5] + light[6] + light[7];
+			double lightLeft 	= light[0] + light[1] + light[2] + light[3];
+			double lightRight = light[4] + light[5] + light[6] + light[7];
 
-			//if ( lightLeft > lightRight )
-			//{
+			if ( lightLeft > lightRight )
+			{
 				//m_fActivationTable[un_priority][0] = SPEED;
 				//m_fActivationTable[un_priority][1] = -SPEED;
-			//}
-			//else
-			//{
+			}
+			else
+		{
 				//m_fActivationTable[un_priority][0] = -SPEED;
 				//m_fActivationTable[un_priority][1] = SPEED;
-			//}
-		//}
+			}
+		}
 	}
 	if (m_nWriteToFile ) 
 	{

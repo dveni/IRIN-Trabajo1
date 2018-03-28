@@ -55,7 +55,7 @@ using namespace std;
 /* Threshold to reduce the speed of the robot */
 #define NAVIGATE_LIGHT_THRESHOLD 0.9
 #define RED_LIGHT_THRESHOLD 0.35
-#define SPEED 500
+#define SPEED 1000
 
 /* Movement angle to navigate */
 #define MOV_ANGLE 0.707106781
@@ -346,8 +346,12 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	while ( fRepelent < -M_PI ) fRepelent += 2 * M_PI;
 
   m_fActivationTable[un_priority][0] = fRepelent;
-  m_fActivationTable[un_priority][1] = fMaxLight;
-
+if(fMaxLight >0.5){
+m_fActivationTable[un_priority][1] =0;
+}  
+else{
+m_fActivationTable[un_priority][1] = fMaxLight;
+}
 	/* If Bluebattery below a BATTERY_THRESHOLD */
 	if ( Bluebattery[0] < BATTERY_THRESHOLD )
 	{
@@ -375,6 +379,7 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 /******************************************************************************/
 
 void CIri1Controller::Forage ( unsigned int un_priority )
+{
 {
 	/* Leer Sensores de Suelo Memory */
 	double* groundMemory = m_seGroundMemory->GetSensorReading(m_pcEpuck);
@@ -421,24 +426,24 @@ void CIri1Controller::Forage ( unsigned int un_priority )
     m_fActivationTable[un_priority][2] = 1.0;
 		
 		/* Go oposite to the light */
-		if ( ( light[3] * light[4] == 0.0 ) )
-		{
-			m_fActivationTable[un_priority][2] = 1.0;
+		//if ( ( light[3] * light[4] == 0.0 ) )
+		//{
+			//m_fActivationTable[un_priority][2] = 1.0;
 
-			double lightLeft 	= light[0] + light[1] + light[2] + light[3];
-			double lightRight = light[4] + light[5] + light[6] + light[7];
+			//double lightLeft 	= light[0] + light[1] + light[2] + light[3];
+			//double lightRight = light[4] + light[5] + light[6] + light[7];
 
-			if ( lightLeft > lightRight )
-			{
+			//if ( lightLeft > lightRight )
+			//{
 				//m_fActivationTable[un_priority][0] = SPEED;
 				//m_fActivationTable[un_priority][1] = -SPEED;
-			}
-			else
-		{
+			//}
+			//else
+			//{
 				//m_fActivationTable[un_priority][0] = -SPEED;
 				//m_fActivationTable[un_priority][1] = SPEED;
-			}
-		}
+			//}
+		//}
 	}
 	if (m_nWriteToFile ) 
 	{
@@ -448,6 +453,6 @@ void CIri1Controller::Forage ( unsigned int un_priority )
 		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
 		fclose(fileOutput);
 		/* END WRITE TO FILE */
-	}
+	}}	
 }
 
