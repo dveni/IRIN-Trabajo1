@@ -51,6 +51,9 @@ using namespace std;
 
 #define SPEED 500
 
+/* Movement angle to navigate */
+#define MOV_ANGLE 0.707106781
+
 
 /******************************************************************************/
 /******************************************************************************/
@@ -268,9 +271,19 @@ void CIri1Controller::ObstacleAvoidance ( unsigned int un_priority )
 void CIri1Controller::Navigate ( unsigned int un_priority )
 {
   double* angle = m_seCompass->GetSensorReading(m_pcEpuck);
+  int aux = 0;
+
+/* Direction angle changes between +45º & -45º */
+  if(aux==1){
+  	m_fActivationTable[un_priority][0] = angle+MOV_ANGLE;
+  	aux=0;
+  }else{
+  	m_fActivationTable[un_priority][0] = angle-2*MOV_ANGLE;
+  	aux=1;
+  }
 
   /* Direction Angle 0.0 and always active. We set its vector intensity to 0.5 if used */
-	m_fActivationTable[un_priority][0] = 0.0;
+	
 	m_fActivationTable[un_priority][1] = 0.5;
 	m_fActivationTable[un_priority][2] = 1.0;
 
