@@ -19,4 +19,8 @@ cp /home/fons/Descargas/irsim/experiments/iri1exp.cpp /home/fons/Documentos/Trab
 cp /home/fons/Descargas/irsim/controllers/iri1controller.cpp /home/fons/Documentos/Trabajo/iri1controller.cpp
 
 
+Bibliografía
+
+https://www.physics.ohio-state.edu/~wilkins/writing/Samples/shortmed/fiskemedium/
+
 

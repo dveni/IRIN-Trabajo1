@@ -267,6 +267,8 @@ void CIri1Controller::ObstacleAvoidance ( unsigned int un_priority )
 
 void CIri1Controller::Navigate ( unsigned int un_priority )
 {
+  double* angle = m_seCompass->GetSensorReading(m_pcEpuck);
+
   /* Direction Angle 0.0 and always active. We set its vector intensity to 0.5 if used */
 	m_fActivationTable[un_priority][0] = 0.0;
 	m_fActivationTable[un_priority][1] = 0.5;
