@@ -12,9 +12,15 @@
 #include "epuckproximitysensor.h"
 #include "contactsensor.h"
 #include "reallightsensor.h"
+#include "realbluelightsensor.h"
+#include "realredlightsensor.h"
 #include "groundsensor.h"
 #include "groundmemorysensor.h"
 #include "batterysensor.h"
+#include "bluebatterysensor.h"
+#include "redbatterysensor.h"
+#include "encodersensor.h"
+#include "compasssensor.h"
 
 /******************** Actuators ****************/
 #include "wheelsactuator.h"
@@ -48,7 +54,7 @@ using namespace std;
 #define BATTERY_THRESHOLD 0.5
 /* Threshold to reduce the speed of the robot */
 #define NAVIGATE_LIGHT_THRESHOLD 0.9
-
+#define RED_LIGHT_THRESHOLD 0.35
 #define SPEED 500
 
 /* Movement angle to navigate */
@@ -70,14 +76,28 @@ CIri1Controller::CIri1Controller (const char* pch_name, CEpuck* pc_epuck, int n_
 	m_seProx = (CEpuckProximitySensor*) m_pcEpuck->GetSensor(SENSOR_PROXIMITY);
 	/* Set light Sensor */
 	m_seLight = (CRealLightSensor*) m_pcEpuck->GetSensor(SENSOR_REAL_LIGHT);
+	/* Set Blue light Sensor */
+	m_seBlueLight = (CRealBlueLightSensor*) m_pcEpuck->GetSensor(SENSOR_REAL_BLUE_LIGHT);
+	/* Set Red light Sensor */
+	m_seRedLight = (CRealRedLightSensor*) m_pcEpuck->GetSensor(SENSOR_REAL_RED_LIGHT);
 	/* Set contact Sensor */
 	m_seContact = (CContactSensor*) m_pcEpuck->GetSensor (SENSOR_CONTACT);
 	/* Set ground Sensor */
 	m_seGround = (CGroundSensor*) m_pcEpuck->GetSensor (SENSOR_GROUND);
 	/* Set ground memory Sensor */
 	m_seGroundMemory = (CGroundMemorySensor*) m_pcEpuck->GetSensor (SENSOR_GROUND_MEMORY);
+
 	/* Set battery Sensor */
 	m_seBattery = (CBatterySensor*) m_pcEpuck->GetSensor (SENSOR_BATTERY);
+	/* Set blue battery Sensor */
+	m_seBlueBattery = (CBlueBatterySensor*) m_pcEpuck->GetSensor (SENSOR_BLUE_BATTERY);
+	/* Set red battery Sensor */
+	m_seRedBattery = (CRedBatterySensor*) m_pcEpuck->GetSensor (SENSOR_RED_BATTERY);
+	/* Set encoder Sensor */
+	m_seEncoder = (CEncoderSensor*) m_pcEpuck->GetSensor (SENSOR_ENCODER);
+  m_seEncoder->InitEncoderSensor(m_pcEpuck);
+	/* Set compass Sensor */
+	m_seCompass = (CCompassSensor*) m_pcEpuck->GetSensor (SENSOR_COMPASS);
 
 	
 	/* Initilize Variables */
@@ -309,6 +329,8 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 
 	/* Leer Sensores de Luz */
 	double* light = m_seLight->GetSensorReading(m_pcEpuck);
+	/* Leer Sensores de Luz */
+	double* lightBlue = m_seLightblue->GetSensorReading(m_pcEpuck);
 
 	double fMaxLight = 0.0;
 	const double* lightDirections = m_seLight->GetSensorDirections();
@@ -321,11 +343,11 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	/* Calc vector Sum */
 	for ( int i = 0 ; i < m_seProx->GetNumberOfInputs() ; i ++ )
 	{
-		vRepelent.x += light[i] * cos ( lightDirections[i] );
-		vRepelent.y += light[i] * sin ( lightDirections[i] );
+		vRepelent.x += lightBlue[i] * cos ( lightDirections[i] );
+		vRepelent.y += lightBlue[i] * sin ( lightDirections[i] );
 
-		if ( light[i] > fMaxLight )
-			fMaxLight = light[i];
+		if ( lightBlue[i] > fMaxLight )
+			fMaxLight = lightBlue[i];
 	}
 	
 	/* Calc pointing angle */
@@ -355,7 +377,7 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	{
 		/* INIT WRITE TO FILE */
 		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
+		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], lightBlue[0], lightBlue[1], lightBlue[2], lightBlue[3], lightBlue[4], lightBlue[5], lightBlue[6], lightBlue[7]);
 		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
 		fclose(fileOutput);
 		/* END WRITE TO FILE */
