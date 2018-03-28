@@ -325,10 +325,10 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 {
 	/* Leer Battery Sensores */
-	double* battery = m_seBattery->GetSensorReading(m_pcEpuck);
+	double* Bluebattery = m_seBlueBattery ->GetSensorReading(m_pcEpuck);
 
 	/* Leer Sensores de Luz */
-	double* light = m_seLight->GetSensorReading(m_pcEpuck);
+	double* light = m_seBlueLight->GetSensorReading(m_pcEpuck);
 
 	double fMaxLight = 0.0;
 	const double* lightDirections = m_seLight->GetSensorDirections();
@@ -358,8 +358,8 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
   m_fActivationTable[un_priority][0] = fRepelent;
   m_fActivationTable[un_priority][1] = fMaxLight;
 
-	/* If battery below a BATTERY_THRESHOLD */
-	if ( battery[0] < BATTERY_THRESHOLD )
+	/* If Bluebattery below a BATTERY_THRESHOLD */
+	if ( Bluebattery[0] < BATTERY_THRESHOLD )
 	{
     /* Inibit Forage */
 		fBattToForageInhibitor = 0.0;
@@ -375,7 +375,7 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	{
 		/* INIT WRITE TO FILE */
 		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0],  light[0],  light[1],  light[2],  light[3],  light[4],  light[5],  light[6],  light[7]);
+		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, Bluebattery[0],  light[0],  light[1],  light[2],  light[3],  light[4],  light[5],  light[6],  light[7]);
 		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
 		fclose(fileOutput);
 		/* END WRITE TO FILE */
