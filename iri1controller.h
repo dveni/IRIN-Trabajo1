@@ -43,6 +43,11 @@ private:
 		double**	m_fActivationTable;
 		int 			m_nWriteToFile;
 		double 		m_fTime;
+		// Si  parada = 0 no se para el robot, si parada es igual a 1 se para el robot
+		double 	 	parada;
+		double 		carga_aun;
+		double 		carga_aunaux;
+		double 		flagstop;
     	double    fBattToForageInhibitor;
 	
 		/* Functions */

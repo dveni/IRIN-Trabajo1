@@ -213,9 +213,8 @@ void CIri1Controller::Coordinator ( void )
 
   /*Calc Angular Speed */
   double fVAngular = fAngle;
-
-  m_fLeftSpeed  = fVLinear - fC1 * fVAngular;
-  m_fRightSpeed = fVLinear + fC1 * fVAngular;
+  m_fLeftSpeed  = (fVLinear - fC1 * fVAngular)* parada;
+  m_fRightSpeed = (fVLinear + fC1 * fVAngular)* parada;
 	if (m_nWriteToFile ) 
 	{
 		/* INIT: WRITE TO FILES */
@@ -352,17 +351,29 @@ m_fActivationTable[un_priority][1] =0;
 else{
 m_fActivationTable[un_priority][1] = fMaxLight;
 }
+parada = 1;
+ carga_aun = Bluebattery[0];
+if (carga_aun <= carga_aunaux){
+ carga_aunaux = carga_aun;
+ flagstop = 1;
+
+}else { flagstop = 0;}
 	/* If Bluebattery below a BATTERY_THRESHOLD */
 	if ( Bluebattery[0] < BATTERY_THRESHOLD )
-	{
+	{ 
+if ( Bluebattery[0] < 0.9 && flagstop == 0) {
+	parada = 0;
+	if (Bluebattery[0] < 0.85){carga_aunaux = carga_aun;}
+	/* Set Leds to RED */
+		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_YELLOW);}
     /* Inibit Forage */
 		fBattToForageInhibitor = 0.0;
 		/* Set Leds to RED */
-		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_RED);
+	//	m_pcEpuck->SetAllColoredLeds(	LED_COLOR_RED);
 		
     /* Mark behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
-	}	
+	}
 	
 	if (m_nWriteToFile ) 
 	{
