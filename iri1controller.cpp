@@ -393,9 +393,9 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	/* Set Leds to RED */
 		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_RED);}
 
-    /* Inibit Forage */
+    /* Inibit Forage & followScent */
 		fBattToForageInhibitor = 0.0;
-		
+		followScentInhibitor = 0.0;
 		
     /* Mark behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
@@ -530,6 +530,54 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
 		ground += groundsensors[i];
 	}
 
+
+
+	double* direction = new double[2];
+	direction = calcDirection(light);
+	double fRepelent=direction[0];
+	double fMaxLight=direction[1];
+
+  m_fActivationTable[un_priority][0] = fRepelent;
+  m_fActivationTable[un_priority][1] = fMaxLight;
+
+	/* If battery below a BATTERY_THRESHOLD */
+	if ( (fMaxLight*followScentInhibitor) >0 ){
+    /* Inibit Forage */
+	//	fBattToForageInhibitor = 0.0;
+		/* Set Leds to RED */
+		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_PINK);
+
+		/* Si passa por zona gris => coge polen */
+		if(ground>0.5 && ground < 1.6 && fMaxLight>0.7){
+			mochila = 1;
+			m_seRedLight->SwitchNearestLight(0);
+		}
+		
+    /* Mark behavior as active */
+    m_fActivationTable[un_priority][2] = 1.0;
+	}	
+
+	
+//	if (m_nWriteToFile ) 
+//	{
+//		/* INIT WRITE TO FILE */
+//		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
+//		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
+//		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
+//		fclose(fileOutput);
+//		/* END WRITE TO FILE */
+//	}
+}
+
+void CIri1Controller::Ofrenda(unsigned int un_priority){
+
+}
+
+void CIri1Controller::Die(unsigned int un_priority){
+
+}
+
+double* CIri1Controller::calcDirection(double* light){
 	double fMaxLight = 0.0;
 	const double* lightDirections = m_seRedLight->GetSensorDirections();
 
@@ -555,35 +603,9 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
 	while ( fRepelent > M_PI ) fRepelent -= 2 * M_PI;
 	while ( fRepelent < -M_PI ) fRepelent += 2 * M_PI;
 
-  m_fActivationTable[un_priority][0] = fRepelent;
-  m_fActivationTable[un_priority][1] = fMaxLight;
+	double* params = new double[2];
+	params[0]=fRepelent;
+	params[1]=fMaxLight;
 
-	/* If battery below a BATTERY_THRESHOLD */
-	if ( (fMaxLight*followScentInhibitor) >0 ){
-    /* Inibit Forage */
-	//	fBattToForageInhibitor = 0.0;
-		/* Set Leds to RED */
-		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_PINK);
-
-		/* Si passa por zona gris => coge polen */
-		if(ground>0.5 && ground < 1.6){
-			mochila = 1;
-			
-		}
-		
-    /* Mark behavior as active */
-    m_fActivationTable[un_priority][2] = 1.0;
-	}	
-
-	
-	if (m_nWriteToFile ) 
-	{
-		/* INIT WRITE TO FILE */
-		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
-		fclose(fileOutput);
-		/* END WRITE TO FILE */
-	}
+	return params;
 }
-

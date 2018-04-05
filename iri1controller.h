@@ -60,6 +60,9 @@ private:
 		void GoLoad ( unsigned int un_priority );
 		void Forage ( unsigned int un_priority );
 		void FollowScent (unsigned int un_priority);
+		void Ofrenda(unsigned int un_priority);
+
+		double* calcDirection(double* light);
 };
 
 #endif
