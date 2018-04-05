@@ -105,7 +105,7 @@ CIri1Controller::CIri1Controller (const char* pch_name, CEpuck* pc_epuck, int n_
   mochila=0;
   parada = 1;
   carga_lastStep =1;
-
+AvoidInhibitor = 1;
 
 	m_fActivationTable = new double* [BEHAVIORS];
 	for ( int i = 0 ; i < BEHAVIORS ; i++ )
@@ -174,6 +174,7 @@ void CIri1Controller::ExecuteBehaviors ( void )
 
 	/* Release Inhibitors */
 	fBattToForageInhibitor = 1.0;
+	AvoidInhibitor = 1.0;
 	followScentInhibitor = 1.0;
 	/* Set Leds to BLACK */
 	m_pcEpuck->SetAllColoredLeds(	LED_COLOR_BLACK);
@@ -288,12 +289,15 @@ void CIri1Controller::ObstacleAvoidance ( unsigned int un_priority )
 
 	/* If above a threshold */
 	if ( fMaxProx > PROXIMITY_THRESHOLD )
-	{
+	{ 
+	AvoidInhibitor = 0;
+	followScentInhibitor=0;
+	fBattToForageInhibitor=0;
 		/* Set Leds to GREEN */
 		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_GREEN);
     /* Mark Behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
-	}
+	}else {AvoidInhibitor = 1;}
 	
 	if (m_nWriteToFile ) 
 	{
@@ -382,9 +386,9 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 
 	}else { flagstop = 0;}
 	/* If bluebattery below a BATTERY_THRESHOLD */
-	if ( bluebattery[0] < BATTERY_THRESHOLD )
+	if ( AvoidInhibitor == 1 &&  bluebattery[0] < BATTERY_THRESHOLD )
 		{ 
-		if ( AvoidInhibitor != 1 && bluebattery[0] < 0.9 && flagstop == 0) {
+		if (bluebattery[0] < 0.9 && flagstop == 0) {
 			parada = 0;
 			
 	/* Set Leds to RED */
@@ -470,7 +474,7 @@ void CIri1Controller::Forage ( unsigned int un_priority )
 
 
   /* If with a virtual puck */
-	if ( AvoidInhibitor != 1 && ( mochila * fBattToForageInhibitor ) == 1.0 )
+	if ( AvoidInhibitor == 1 && ( mochila * fBattToForageInhibitor ) == 1.0 )
 	{
 		/* FollowScent inhibitor */
 		followScentInhibitor = 0.0;
@@ -541,7 +545,7 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
   m_fActivationTable[un_priority][1] = fMaxLight;
 
 	/* If battery below a BATTERY_THRESHOLD */
-	if ( (fMaxLight*followScentInhibitor) >0 ){
+	if ( (AvoidInhibitor* fMaxLight*followScentInhibitor) >0 ){
     /* Inibit Forage */
 	//	fBattToForageInhibitor = 0.0;
 		/* Set Leds to RED */
@@ -604,9 +608,11 @@ double* CIri1Controller::calcDirection(double* light){
 	while ( fRepelent < -M_PI ) fRepelent += 2 * M_PI;
 
 
+
 	double* params = new double[2];
 	params[0]=fRepelent;
 	params[1]=fMaxLight;
+
 
 
 	return params;
