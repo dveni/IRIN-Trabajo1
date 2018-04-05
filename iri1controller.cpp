@@ -104,6 +104,7 @@ CIri1Controller::CIri1Controller (const char* pch_name, CEpuck* pc_epuck, int n_
   followScentInhibitor = 1.0;
   mochila=0;
   parada = 1;
+  carga_lastStep =1;
 
 
 	m_fActivationTable = new double* [BEHAVIORS];
@@ -176,6 +177,10 @@ void CIri1Controller::ExecuteBehaviors ( void )
 	followScentInhibitor = 1.0;
 	/* Set Leds to BLACK */
 	m_pcEpuck->SetAllColoredLeds(	LED_COLOR_BLACK);
+
+	/* Parada =1 */
+
+	parada = 1;
 	
 	ObstacleAvoidance ( AVOID_PRIORITY );
 	GoLoad ( RELOAD_PRIORITY );
@@ -333,13 +338,13 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 {
 	/* Leer Battery Sensores */
-	double* battery = m_seBattery->GetSensorReading(m_pcEpuck);
+	double* bluebattery = m_seBlueBattery->GetSensorReading(m_pcEpuck);
 
 	/* Leer Sensores de Luz */
-	double* light = m_seLight->GetSensorReading(m_pcEpuck);
+	double* light = m_seBlueLight->GetSensorReading(m_pcEpuck);
 
 	double fMaxLight = 0.0;
-	const double* lightDirections = m_seLight->GetSensorDirections();
+	const double* lightDirections = m_seBlueLight->GetSensorDirections();
 
   /* We call vRepelent to go similar to Obstacle Avoidance, although it is an aproaching vector */
 	dVector2 vRepelent;
@@ -365,26 +370,26 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 
   m_fActivationTable[un_priority][0] = fRepelent;
 
-	if(fMaxLight >0.5){
-		m_fActivationTable[un_priority][1] =0;
-	}  
-	else{
+	
 		m_fActivationTable[un_priority][1] = fMaxLight;
-	}
 	
 	
- 	carga_actual = Bluebattery[0];
+	
+ 	carga_actual = bluebattery[0];
+ 	  printf("Nivel batería: %2f\n", carga_actual);
+
 	if (carga_actual <= carga_lastStep){
  		carga_lastStep = carga_actual;
  		flagstop = 1;
 
 	}else { flagstop = 0;}
-	/* If Bluebattery below a BATTERY_THRESHOLD */
-	if ( Bluebattery[0] < BATTERY_THRESHOLD )
+	/* If bluebattery below a BATTERY_THRESHOLD */
+	if ( bluebattery[0] < BATTERY_THRESHOLD )
 		{ 
-		if ( Bluebattery[0] < 0.9 && flagstop == 0) {
+		if ( bluebattery[0] < 0.9 && flagstop == 0) {
 			parada = 0;
-		if (Bluebattery[0] < 0.85){carga_lastStep = carga_actual;}
+			if (bluebattery[0] > 0.85)
+				{carga_lastStep = carga_actual;}
 	/* Set Leds to RED */
 		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_RED);}
 
@@ -398,15 +403,16 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	}
 
 	
-	if (m_nWriteToFile ) 
-	{
-		/* INIT WRITE TO FILE */
-		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
-		fclose(fileOutput);
-		/* END WRITE TO FILE */
-	}
+	//if (m_nWriteToFile ) 
+	//{
+	//	/* INIT WRITE TO FILE */
+	//	FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
+	//	fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
+	//	fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
+	//	fclose(fileOutput);
+	//	/* END WRITE TO FILE */
+	//}
+
 }
 
 /******************************************************************************/

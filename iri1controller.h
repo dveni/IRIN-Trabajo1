@@ -45,7 +45,7 @@ private:
 		// Si  parada = 0 no se para el robot, si parada es igual a 1 se para el robot
 		double 	 	parada;
 		double 		carga_actual;
-		double 		carga_aunaux;
+		double 		carga_lastStep;
 		double 		flagstop;
     	double    fBattToForageInhibitor;
     	double		followScentInhibitor;	
