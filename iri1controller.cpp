@@ -386,7 +386,7 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	/* If bluebattery below a BATTERY_THRESHOLD */
 	if ( bluebattery[0] < BATTERY_THRESHOLD )
 		{ 
-		if ( bluebattery[0] < 0.9 && flagstop == 0) {
+		if ( AvoidInhibitor != 1 && bluebattery[0] < 0.9 && flagstop == 0) {
 			parada = 0;
 			if (bluebattery[0] > 0.85)
 				{carga_lastStep = carga_actual;}
@@ -470,7 +470,7 @@ void CIri1Controller::Forage ( unsigned int un_priority )
 
 
   /* If with a virtual puck */
-	if ( ( mochila * fBattToForageInhibitor ) == 1.0 )
+	if ( AvoidInhibitor != 1 && ( mochila * fBattToForageInhibitor ) == 1.0 )
 	{
 		/* FollowScent inhibitor */
 		followScentInhibitor = 0.0;
@@ -559,7 +559,7 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
   m_fActivationTable[un_priority][1] = fMaxLight;
 
 	/* If battery below a BATTERY_THRESHOLD */
-	if ( (fMaxLight*followScentInhibitor) >0 ){
+	if (  AvoidInhibitor != 1 && (fMaxLight*followScentInhibitor) >0 ){
     /* Inibit Forage */
 	//	fBattToForageInhibitor = 0.0;
 		/* Set Leds to RED */

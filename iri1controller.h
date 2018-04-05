@@ -47,9 +47,11 @@ private:
 		double 		carga_actual;
 		double 		carga_lastStep;
 		double 		flagstop;
-    	double    fBattToForageInhibitor;
-    	double		followScentInhibitor;	
-    	int 		mochila;
+		//Inhibitor
+  		double 		AvoidInhibitor;
+		double    fBattToForageInhibitor;
+	    	double		followScentInhibitor;	
+	    	int 		mochila;
 		/* Functions */
 
 		void ExecuteBehaviors ( void );
