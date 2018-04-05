@@ -1,4 +1,4 @@
-/*************JASJEJE****** INCLUDES ******************/
+/******************* INCLUDES ******************/
 /***********************************************/
 
 /******************** General ******************/
@@ -12,11 +12,12 @@
 #include "epuckproximitysensor.h"
 #include "contactsensor.h"
 #include "reallightsensor.h"
-#include "realbluelightsensor.h"
-#include "realredlightsensor.h"
 #include "groundsensor.h"
 #include "groundmemorysensor.h"
 #include "batterysensor.h"
+
+#include "realbluelightsensor.h"
+#include "realredlightsensor.h"
 #include "bluebatterysensor.h"
 #include "redbatterysensor.h"
 #include "encodersensor.h"
@@ -38,15 +39,18 @@ extern long int rngSeed;
 /******************************************************************************/
 
 using namespace std;
+
+
 /******************************************************************************/
 /******************************************************************************/
 
-#define BEHAVIORS	4
+#define BEHAVIORS	5
 
 #define AVOID_PRIORITY 		0
 #define RELOAD_PRIORITY 	1
 #define FORAGE_PRIORITY		2
-#define NAVIGATE_PRIORITY 3
+#define FOLLOW_SCENT 		3
+#define NAVIGATE_PRIORITY 	4
 
 /* Threshold to avoid obstacles */
 #define PROXIMITY_THRESHOLD 0.3
@@ -54,11 +58,8 @@ using namespace std;
 #define BATTERY_THRESHOLD 0.5
 /* Threshold to reduce the speed of the robot */
 #define NAVIGATE_LIGHT_THRESHOLD 0.9
-#define RED_LIGHT_THRESHOLD 0.35
-#define SPEED 1000
 
-/* Movement angle to navigate */
-#define MOV_ANGLE 0.707106781
+#define SPEED 800
 
 
 /******************************************************************************/
@@ -76,9 +77,9 @@ CIri1Controller::CIri1Controller (const char* pch_name, CEpuck* pc_epuck, int n_
 	m_seProx = (CEpuckProximitySensor*) m_pcEpuck->GetSensor(SENSOR_PROXIMITY);
 	/* Set light Sensor */
 	m_seLight = (CRealLightSensor*) m_pcEpuck->GetSensor(SENSOR_REAL_LIGHT);
-	/* Set Blue light Sensor */
+	/* Set blue light Sensor */
 	m_seBlueLight = (CRealBlueLightSensor*) m_pcEpuck->GetSensor(SENSOR_REAL_BLUE_LIGHT);
-	/* Set Red light Sensor */
+	/* Set red light Sensor */
 	m_seRedLight = (CRealRedLightSensor*) m_pcEpuck->GetSensor(SENSOR_REAL_RED_LIGHT);
 	/* Set contact Sensor */
 	m_seContact = (CContactSensor*) m_pcEpuck->GetSensor (SENSOR_CONTACT);
@@ -86,24 +87,22 @@ CIri1Controller::CIri1Controller (const char* pch_name, CEpuck* pc_epuck, int n_
 	m_seGround = (CGroundSensor*) m_pcEpuck->GetSensor (SENSOR_GROUND);
 	/* Set ground memory Sensor */
 	m_seGroundMemory = (CGroundMemorySensor*) m_pcEpuck->GetSensor (SENSOR_GROUND_MEMORY);
-
 	/* Set battery Sensor */
 	m_seBattery = (CBatterySensor*) m_pcEpuck->GetSensor (SENSOR_BATTERY);
-	/* Set blue battery Sensor */
-	m_seBlueBattery = (CBlueBatterySensor*) m_pcEpuck->GetSensor (SENSOR_BLUE_BATTERY);
-	/* Set red battery Sensor */
-	m_seRedBattery = (CRedBatterySensor*) m_pcEpuck->GetSensor (SENSOR_RED_BATTERY);
-	/* Set encoder Sensor */
-	m_seEncoder = (CEncoderSensor*) m_pcEpuck->GetSensor (SENSOR_ENCODER);
-  m_seEncoder->InitEncoderSensor(m_pcEpuck);
-	/* Set compass Sensor */
-	m_seCompass = (CCompassSensor*) m_pcEpuck->GetSensor (SENSOR_COMPASS);
+	/* Set blue battery sensor */
+	m_seBlueBattery = (CBlueBatterySensor*) m_pcEpuck->GetSensor(SENSOR_BLUE_BATTERY);
+	/* Set red battery sensor */
+	m_seRedBattery = (CRedBatterySensor*) m_pcEpuck->GetSensor(SENSOR_RED_BATTERY);
+
 
 	
 	/* Initilize Variables */
 	m_fLeftSpeed = 0.0;
 	m_fRightSpeed = 0.0;
   fBattToForageInhibitor = 1.0;
+  followScentInhibitor = 1.0;
+  mochila=0;
+
 
 	m_fActivationTable = new double* [BEHAVIORS];
 	for ( int i = 0 ; i < BEHAVIORS ; i++ )
@@ -163,6 +162,8 @@ void CIri1Controller::SimulationStep(unsigned n_step_number, double f_time, doub
 
 void CIri1Controller::ExecuteBehaviors ( void )
 {
+
+
 	for ( int i = 0 ; i < BEHAVIORS ; i++ )
 	{
 		m_fActivationTable[i][2] = 0.0;
@@ -170,12 +171,14 @@ void CIri1Controller::ExecuteBehaviors ( void )
 
 	/* Release Inhibitors */
 	fBattToForageInhibitor = 1.0;
+	followScentInhibitor = 1.0;
 	/* Set Leds to BLACK */
 	m_pcEpuck->SetAllColoredLeds(	LED_COLOR_BLACK);
 	
 	ObstacleAvoidance ( AVOID_PRIORITY );
 	GoLoad ( RELOAD_PRIORITY );
 	Forage ( FORAGE_PRIORITY );
+	FollowScent(FOLLOW_SCENT);
 	Navigate ( NAVIGATE_PRIORITY );
 }
 
@@ -184,20 +187,36 @@ void CIri1Controller::ExecuteBehaviors ( void )
 
 void CIri1Controller::Coordinator ( void )
 {
-	int nBehavior;
-  double fAngle = 0.0;
+	/* Create counter for behaviors */ 
+	int       nBehavior;
+  /* Create angle of movement */
+  double    fAngle = 0.0;
+  /* Create vector of movement */
+  dVector2  vAngle;
+  vAngle.x = 0.0;
+  vAngle.y = 0.0;
 
-  int nActiveBehaviors = 0;
-  /* For every Behavior Activated, sum angles */
+
+  
+   /* For every Behavior */
 	for ( nBehavior = 0 ; nBehavior < BEHAVIORS ; nBehavior++ )
 	{
+    /* If behavior is active */
 		if ( m_fActivationTable[nBehavior][2] == 1.0 )
 		{
-      fAngle += m_fActivationTable[nBehavior][0];
-      nActiveBehaviors++;
+      /* DEBUG */
+      printf("Behavior %d: %2f\n", nBehavior, m_fActivationTable[nBehavior][0]);
+      /* DEBUG */
+      vAngle.x += m_fActivationTable[nBehavior][1] * cos(m_fActivationTable[nBehavior][0]);
+      vAngle.y += m_fActivationTable[nBehavior][1] * sin(m_fActivationTable[nBehavior][0]);
 		}
 	}
-  fAngle /= (double) nActiveBehaviors;
+
+	/* Calc angle of movement */
+  fAngle = atan2(vAngle.y, vAngle.x);
+  /* DEBUG */
+  printf("fAngle: %2f\n", fAngle);
+  printf("\n");
 	
   /* Normalize fAngle */
   while ( fAngle > M_PI ) fAngle -= 2 * M_PI;
@@ -288,7 +307,6 @@ void CIri1Controller::ObstacleAvoidance ( unsigned int un_priority )
 /******************************************************************************/
 /******************************************************************************/
 
-
 void CIri1Controller::Navigate ( unsigned int un_priority )
 {
   /* Direction Angle 0.0 and always active. We set its vector intensity to 0.5 if used */
@@ -313,15 +331,14 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 
 void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 {
-
 	/* Leer Battery Sensores */
-	double* Bluebattery = m_seBlueBattery ->GetSensorReading(m_pcEpuck);
+	double* battery = m_seBattery->GetSensorReading(m_pcEpuck);
 
 	/* Leer Sensores de Luz */
-	double* light = m_seBlueLight->GetSensorReading(m_pcEpuck);
+	double* light = m_seLight->GetSensorReading(m_pcEpuck);
 
 	double fMaxLight = 0.0;
-	const double* lightDirections = m_seBlueLight->GetSensorDirections();
+	const double* lightDirections = m_seLight->GetSensorDirections();
 
   /* We call vRepelent to go similar to Obstacle Avoidance, although it is an aproaching vector */
 	dVector2 vRepelent;
@@ -331,11 +348,11 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	/* Calc vector Sum */
 	for ( int i = 0 ; i < m_seProx->GetNumberOfInputs() ; i ++ )
 	{
-		vRepelent.x +=  light[i] * cos ( lightDirections[i] );
-		vRepelent.y +=  light[i] * sin ( lightDirections[i] );
+		vRepelent.x += light[i] * cos ( lightDirections[i] );
+		vRepelent.y += light[i] * sin ( lightDirections[i] );
 
-		if (  light[i] > fMaxLight )
-			fMaxLight =  light[i];
+		if ( light[i] > fMaxLight )
+			fMaxLight = light[i];
 	}
 	
 	/* Calc pointing angle */
@@ -346,14 +363,10 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	while ( fRepelent < -M_PI ) fRepelent += 2 * M_PI;
 
   m_fActivationTable[un_priority][0] = fRepelent;
-if(fMaxLight >0.5){
-m_fActivationTable[un_priority][1] =0;
-}  
-else{
-m_fActivationTable[un_priority][1] = fMaxLight;
-}
-	/* If Bluebattery below a BATTERY_THRESHOLD */
-	if ( Bluebattery[0] < BATTERY_THRESHOLD )
+  m_fActivationTable[un_priority][1] = fMaxLight;
+
+	/* If battery below a BATTERY_THRESHOLD */
+	if ( battery[0] < BATTERY_THRESHOLD )
 	{
     /* Inibit Forage */
 		fBattToForageInhibitor = 0.0;
@@ -363,12 +376,13 @@ m_fActivationTable[un_priority][1] = fMaxLight;
     /* Mark behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
 	}	
+
 	
 	if (m_nWriteToFile ) 
 	{
 		/* INIT WRITE TO FILE */
 		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, Bluebattery[0],  light[0],  light[1],  light[2],  light[3],  light[4],  light[5],  light[6],  light[7]);
+		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
 		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
 		fclose(fileOutput);
 		/* END WRITE TO FILE */
@@ -380,9 +394,15 @@ m_fActivationTable[un_priority][1] = fMaxLight;
 
 void CIri1Controller::Forage ( unsigned int un_priority )
 {
-{
-	/* Leer Sensores de Suelo Memory */
-	double* groundMemory = m_seGroundMemory->GetSensorReading(m_pcEpuck);
+	/* Leer sensores de suelo*/
+	double* groundsensors = new double[3];
+	groundsensors = m_seGround->GetSensorReading(m_pcEpuck);
+
+	double ground;
+
+	for(int i =0; i<3;i++){
+		ground += groundsensors[i];
+	}
 	
 	/* Leer Sensores de Luz */
 	double* light = m_seLight->GetSensorReading(m_pcEpuck);
@@ -417,9 +437,18 @@ void CIri1Controller::Forage ( unsigned int un_priority )
   m_fActivationTable[un_priority][0] = fRepelent;
   m_fActivationTable[un_priority][1] = 1 - fMaxLight;
   
+  
+  if(ground < 0.5){
+  	mochila =0;
+  }
+
+
   /* If with a virtual puck */
-	if ( ( groundMemory[0] * fBattToForageInhibitor ) == 1.0 )
+	if ( ( mochila * fBattToForageInhibitor ) == 1.0 )
 	{
+		/* FollowScent inhibitor */
+		followScentInhibitor = 0.0;
+
 		/* Set Leds to BLUE */
 		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_BLUE);
     /* Mark Behavior as active */
@@ -445,14 +474,90 @@ void CIri1Controller::Forage ( unsigned int un_priority )
 			//}
 		//}
 	}
+	//if (m_nWriteToFile ) 
+	//{
+	//	/* INIT WRITE TO FILE */
+	//	FILE* fileOutput = fopen("outputFiles/forageOutput", "a");
+	//	fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, fBattToForageInhibitor, groundMemory[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
+	//	fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
+	//	fclose(fileOutput);
+	//	/* END WRITE TO FILE */
+	//}
+}
+
+
+void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
+{
+	/* Leer Battery Sensores */
+	double* battery = m_seRedBattery->GetSensorReading(m_pcEpuck);
+
+	/* Leer Sensores de Luz roja */
+	double* light = m_seRedLight->GetSensorReading(m_pcEpuck);
+
+	/* Leer sensores de suelo*/
+	double* groundsensors = new double[3];
+	groundsensors = m_seGround->GetSensorReading(m_pcEpuck);
+
+	double ground;
+
+	for(int i =0; i<3;i++){
+		ground += groundsensors[i];
+	}
+
+	double fMaxLight = 0.0;
+	const double* lightDirections = m_seRedLight->GetSensorDirections();
+
+  /* We call vRepelent to go similar to Obstacle Avoidance, although it is an aproaching vector */
+	dVector2 vRepelent;
+	vRepelent.x = 0.0;
+	vRepelent.y = 0.0;
+
+	/* Calc vector Sum */
+	for ( int i = 0 ; i < m_seProx->GetNumberOfInputs() ; i ++ )
+	{
+		vRepelent.x += light[i] * cos ( lightDirections[i] );
+		vRepelent.y += light[i] * sin ( lightDirections[i] );
+
+		if ( light[i] > fMaxLight )
+			fMaxLight = light[i];
+	}
+	
+	/* Calc pointing angle */
+	float fRepelent = atan2(vRepelent.y, vRepelent.x);
+	
+  /* Normalize angle */
+	while ( fRepelent > M_PI ) fRepelent -= 2 * M_PI;
+	while ( fRepelent < -M_PI ) fRepelent += 2 * M_PI;
+
+  m_fActivationTable[un_priority][0] = fRepelent;
+  m_fActivationTable[un_priority][1] = fMaxLight;
+
+	/* If battery below a BATTERY_THRESHOLD */
+	if ( (fMaxLight*followScentInhibitor) >0 ){
+    /* Inibit Forage */
+	//	fBattToForageInhibitor = 0.0;
+		/* Set Leds to RED */
+		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_PINK);
+
+		/* Si passa por zona gris => coge polen */
+		if(ground>0.5 && ground < 1.6){
+			mochila = 1;
+			
+		}
+		
+    /* Mark behavior as active */
+    m_fActivationTable[un_priority][2] = 1.0;
+	}	
+
+	
 	if (m_nWriteToFile ) 
 	{
 		/* INIT WRITE TO FILE */
-		FILE* fileOutput = fopen("outputFiles/forageOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, fBattToForageInhibitor, groundMemory[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
+		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
+		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
 		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
 		fclose(fileOutput);
 		/* END WRITE TO FILE */
-	}}	
+	}
 }
 
