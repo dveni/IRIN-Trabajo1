@@ -1,5 +1,8 @@
-
+<<<<<<< HEAD
+/*************ALFONSO****** INCLUDES ******************/
+=======
 /******************* INCLUDES ******************/
+>>>>>>> Dani
 /***********************************************/
 
 /******************** General ******************/
@@ -103,7 +106,6 @@ CIri1Controller::CIri1Controller (const char* pch_name, CEpuck* pc_epuck, int n_
   fBattToForageInhibitor = 1.0;
   followScentInhibitor = 1.0;
   mochila=0;
-  parada = 1;
 
 
 	m_fActivationTable = new double* [BEHAVIORS];
@@ -364,39 +366,48 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	while ( fRepelent < -M_PI ) fRepelent += 2 * M_PI;
 
   m_fActivationTable[un_priority][0] = fRepelent;
+<<<<<<< HEAD
+if(fMaxLight >0.5){
+m_fActivationTable[un_priority][1] =0;
+}  
+else{
+m_fActivationTable[un_priority][1] = fMaxLight;
+}
+parada = 1;
+ carga_aun = Bluebattery[0];
+if (carga_aun <= carga_aunaux){
+ carga_aunaux = carga_aun;
+ flagstop = 1;
 
-	if(fMaxLight >0.5){
-		m_fActivationTable[un_priority][1] =0;
-	}  
-	else{
-		m_fActivationTable[un_priority][1] = fMaxLight;
-	}
-	
-	
- 	carga_actual = Bluebattery[0];
-	if (carga_actual <= carga_lastStep){
- 		carga_lastStep = carga_actual;
- 		flagstop = 1;
-
-	}else { flagstop = 0;}
+}else { flagstop = 0;}
 	/* If Bluebattery below a BATTERY_THRESHOLD */
 	if ( Bluebattery[0] < BATTERY_THRESHOLD )
-		{ 
-		if ( Bluebattery[0] < 0.9 && flagstop == 0) {
-			parada = 0;
-		if (Bluebattery[0] < 0.85){carga_lastStep = carga_actual;}
+	{ 
+if ( Bluebattery[0] < 0.9 && flagstop == 0) {
+	parada = 0;
+	if (Bluebattery[0] < 0.85){carga_aunaux = carga_aun;}
 	/* Set Leds to RED */
-		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_RED);}
+		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_YELLOW);}
+=======
+  m_fActivationTable[un_priority][1] = fMaxLight;
 
+	/* If battery below a BATTERY_THRESHOLD */
+	if ( battery[0] < BATTERY_THRESHOLD )
+	{
+>>>>>>> Dani
     /* Inibit Forage */
 		fBattToForageInhibitor = 0.0;
-		
+		/* Set Leds to RED */
+	//	m_pcEpuck->SetAllColoredLeds(	LED_COLOR_RED);
 		
     /* Mark behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
-
+<<<<<<< HEAD
 	}
+=======
+	}	
 
+>>>>>>> Dani
 	
 	if (m_nWriteToFile ) 
 	{

@@ -23,20 +23,19 @@ private:
    
 	 	/* SENSORS */
 		CWheelsActuator* m_acWheels;
-   		CEpuckProximitySensor* m_seProx;
+    CEpuckProximitySensor* m_seProx;
 		CRealLightSensor* m_seLight;
-		CRealBlueLightSensor* m_seBlueLight;
-		CRealRedLightSensor* m_seRedLight;
 		CContactSensor* m_seContact;
 		CGroundSensor* m_seGround;
 		CGroundMemorySensor* m_seGroundMemory;
-		CBatterySensor* m_seBattery; 
-		CBlueBatterySensor* m_seBlueBattery;  
-		CRedBatterySensor* m_seRedBattery;    
-		CRealBlueLightSensor* m_seLightblue;
-		CEncoderSensor* m_seEncoder; 
-		CCompassSensor* m_seCompass;  	
-	
+		CBatterySensor* m_seBattery;   
+
+		CRealBlueLightSensor* m_seBlueLight;
+		CRealRedLightSensor* m_seRedLight;
+		CBlueBatterySensor* m_seBlueBattery;
+		CRedBatterySensor* m_seRedBattery;
+		
+
 		/* Global Variables */
 		double 		m_fLeftSpeed;
 		double 		m_fRightSpeed;
@@ -45,11 +44,12 @@ private:
 		double 		m_fTime;
 		// Si  parada = 0 no se para el robot, si parada es igual a 1 se para el robot
 		double 	 	parada;
-		double 		carga_aun;
+		double 		carga_actual;
 		double 		carga_aunaux;
 		double 		flagstop;
     	double    fBattToForageInhibitor;
-	
+    	double		followScentInhibitor;	
+    	int 		mochila;
 		/* Functions */
 
 		void ExecuteBehaviors ( void );
@@ -59,6 +59,7 @@ private:
 		void Navigate ( unsigned int un_priority );
 		void GoLoad ( unsigned int un_priority );
 		void Forage ( unsigned int un_priority );
+		void FollowScent (unsigned int un_priority);
 };
 
 #endif
