@@ -178,9 +178,7 @@ void CIri1Controller::ExecuteBehaviors ( void )
 	/* Set Leds to BLACK */
 	m_pcEpuck->SetAllColoredLeds(	LED_COLOR_BLACK);
 
-	/* Parada =1 */
 
-	parada = 1;
 	
 	ObstacleAvoidance ( AVOID_PRIORITY );
 	GoLoad ( RELOAD_PRIORITY );
@@ -386,10 +384,9 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 	/* If bluebattery below a BATTERY_THRESHOLD */
 	if ( bluebattery[0] < BATTERY_THRESHOLD )
 		{ 
-		if ( bluebattery[0] < 0.9 && flagstop == 0) {
+		if ( AvoidInhibitor != 1 && bluebattery[0] < 0.9 && flagstop == 0) {
 			parada = 0;
-			if (bluebattery[0] > 0.85)
-				{carga_lastStep = carga_actual;}
+			
 	/* Set Leds to RED */
 		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_RED);}
 
@@ -402,7 +399,10 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 
 	}
 
-	
+	if (bluebattery[0] > 0.85){
+		carga_lastStep = carga_actual;
+		parada=1;
+	}
 	//if (m_nWriteToFile ) 
 	//{
 	//	/* INIT WRITE TO FILE */
@@ -470,7 +470,7 @@ void CIri1Controller::Forage ( unsigned int un_priority )
 
 
   /* If with a virtual puck */
-	if ( ( mochila * fBattToForageInhibitor ) == 1.0 )
+	if ( AvoidInhibitor != 1 && ( mochila * fBattToForageInhibitor ) == 1.0 )
 	{
 		/* FollowScent inhibitor */
 		followScentInhibitor = 0.0;
@@ -569,13 +569,13 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
 //	}
 }
 
-void CIri1Controller::Ofrenda(unsigned int un_priority){
+/*void CIri1Controller::Ofrenda(unsigned int un_priority){
 
 }
 
 void CIri1Controller::Die(unsigned int un_priority){
 
-}
+}*/
 
 double* CIri1Controller::calcDirection(double* light){
 	double fMaxLight = 0.0;
@@ -603,9 +603,11 @@ double* CIri1Controller::calcDirection(double* light){
 	while ( fRepelent > M_PI ) fRepelent -= 2 * M_PI;
 	while ( fRepelent < -M_PI ) fRepelent += 2 * M_PI;
 
+
 	double* params = new double[2];
 	params[0]=fRepelent;
 	params[1]=fMaxLight;
+
 
 	return params;
 }
