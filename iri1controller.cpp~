@@ -105,7 +105,7 @@ CIri1Controller::CIri1Controller (const char* pch_name, CEpuck* pc_epuck, int n_
   mochila=0;
   parada = 1;
   carga_lastStep =1;
-
+AvoidInhibitor = 1;
 
 	m_fActivationTable = new double* [BEHAVIORS];
 	for ( int i = 0 ; i < BEHAVIORS ; i++ )
@@ -174,16 +174,15 @@ void CIri1Controller::ExecuteBehaviors ( void )
 
 	/* Release Inhibitors */
 	fBattToForageInhibitor = 1.0;
+	AvoidInhibitor = 1.0;
 	followScentInhibitor = 1.0;
 	/* Set Leds to BLACK */
 	m_pcEpuck->SetAllColoredLeds(	LED_COLOR_BLACK);
 
-	/* Parada =1 */
 
-	parada = 1;
 	
 	ObstacleAvoidance ( AVOID_PRIORITY );
-	GoLoad ( RELOAD_PRIORITY );
+	TakeABreak( RELOAD_PRIORITY );
 	Forage ( FORAGE_PRIORITY );
 	FollowScent(FOLLOW_SCENT);
 	Navigate ( NAVIGATE_PRIORITY );
@@ -290,12 +289,15 @@ void CIri1Controller::ObstacleAvoidance ( unsigned int un_priority )
 
 	/* If above a threshold */
 	if ( fMaxProx > PROXIMITY_THRESHOLD )
-	{
+	{ 
+	AvoidInhibitor = 0;
+	followScentInhibitor=0;
+	fBattToForageInhibitor=0;
 		/* Set Leds to GREEN */
 		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_GREEN);
     /* Mark Behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
-	}
+	}else {AvoidInhibitor = 1;}
 	
 	if (m_nWriteToFile ) 
 	{
@@ -335,7 +337,7 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 /******************************************************************************/
 /******************************************************************************/
 
-void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
+void CIri1Controller::TakeABreak	 ( unsigned int un_priority )
 {
 	/* Leer Battery Sensores */
 	double* bluebattery = m_seBlueBattery->GetSensorReading(m_pcEpuck);
@@ -384,25 +386,27 @@ void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
 
 	}else { flagstop = 0;}
 	/* If bluebattery below a BATTERY_THRESHOLD */
-	if ( bluebattery[0] < BATTERY_THRESHOLD )
+	if ( AvoidInhibitor == 1 &&  bluebattery[0] < BATTERY_THRESHOLD )
 		{ 
-		if ( AvoidInhibitor != 1 && bluebattery[0] < 0.9 && flagstop == 0) {
+		if (bluebattery[0] < 0.9 && flagstop == 0) {
 			parada = 0;
-			if (bluebattery[0] > 0.85)
-				{carga_lastStep = carga_actual;}
+			
 	/* Set Leds to RED */
 		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_RED);}
 
-    /* Inibit Forage */
+    /* Inibit Forage & followScent */
 		fBattToForageInhibitor = 0.0;
-		
+		followScentInhibitor = 0.0;
 		
     /* Mark behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
 
 	}
 
-	
+	if (bluebattery[0] > 0.85){
+		carga_lastStep = carga_actual;
+		parada=1;
+	}
 	//if (m_nWriteToFile ) 
 	//{
 	//	/* INIT WRITE TO FILE */
@@ -470,7 +474,7 @@ void CIri1Controller::Forage ( unsigned int un_priority )
 
 
   /* If with a virtual puck */
-	if ( AvoidInhibitor != 1 && ( mochila * fBattToForageInhibitor ) == 1.0 )
+	if ( AvoidInhibitor == 1 && ( mochila * fBattToForageInhibitor ) == 1.0 )
 	{
 		/* FollowScent inhibitor */
 		followScentInhibitor = 0.0;
@@ -530,6 +534,62 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
 		ground += groundsensors[i];
 	}
 
+
+
+	double* direction = new double[2];
+	direction = calcDirection(light);
+	double fRepelent=direction[0];
+	double fMaxLight=direction[1];
+
+  m_fActivationTable[un_priority][0] = fRepelent;
+  m_fActivationTable[un_priority][1] = fMaxLight;
+
+	/* If battery below a BATTERY_THRESHOLD */
+	if ( (AvoidInhibitor* fMaxLight*followScentInhibitor) >0 ){
+    /* Inibit Forage */
+	//	fBattToForageInhibitor = 0.0;
+		/* Set Leds to RED */
+		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_PINK);
+
+		/* Si passa por zona gris => coge polen */
+		if(ground>0.5 && ground < 1.6 && fMaxLight>0.7){
+			mochila = 1;
+			m_seRedLight->SwitchNearestLight(0);
+		}
+		
+    /* Mark behavior as active */
+    m_fActivationTable[un_priority][2] = 1.0;
+	}	
+
+	
+//	if (m_nWriteToFile ) 
+//	{
+//		/* INIT WRITE TO FILE */
+//		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
+//		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
+//		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
+//		fclose(fileOutput);
+//		/* END WRITE TO FILE */
+//	}
+}
+
+/*void CIri1Controller::Ofrenda(unsigned int un_priority){
+
+}
+*/
+void CIri1Controller::Die(unsigned int un_priority){
+	/* Leer Battery Sensores */
+	double* lifebattery = m_seBlueBattery->GetSensorReading(m_pcEpuck);
+
+	/* Leer Sensores luz */
+	double* light = m_seBlueLight->GetSensorReading(m_pcEpuck);
+	
+	if ( lifebattery <= 0.05){
+	parada = 0;
+				}
+}
+
+double* CIri1Controller::calcDirection(double* light){
 	double fMaxLight = 0.0;
 	const double* lightDirections = m_seRedLight->GetSensorDirections();
 
@@ -555,35 +615,13 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
 	while ( fRepelent > M_PI ) fRepelent -= 2 * M_PI;
 	while ( fRepelent < -M_PI ) fRepelent += 2 * M_PI;
 
-  m_fActivationTable[un_priority][0] = fRepelent;
-  m_fActivationTable[un_priority][1] = fMaxLight;
 
-	/* If battery below a BATTERY_THRESHOLD */
-	if ( (fMaxLight*followScentInhibitor) >0 ){
-    /* Inibit Forage */
-	//	fBattToForageInhibitor = 0.0;
-		/* Set Leds to RED */
-		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_PINK);
 
-		/* Si passa por zona gris => coge polen */
-		if(ground>0.5 && ground < 1.6){
-			mochila = 1;
-			
-		}
-		
-    /* Mark behavior as active */
-    m_fActivationTable[un_priority][2] = 1.0;
-	}	
+	double* params = new double[2];
+	params[0]=fRepelent;
+	params[1]=fMaxLight;
 
-	
-	if (m_nWriteToFile ) 
-	{
-		/* INIT WRITE TO FILE */
-		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
-		fclose(fileOutput);
-		/* END WRITE TO FILE */
-	}
+
+
+	return params;
 }
-

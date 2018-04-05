@@ -45,14 +45,14 @@ using namespace std;
 /******************************************************************************/
 /******************************************************************************/
 
-#define BEHAVIORS	5
-
-#define AVOID_PRIORITY 		0
-#define RELOAD_PRIORITY 	1
-#define FORAGE_PRIORITY		2
-#define FOLLOW_SCENT 		3
-#define NAVIGATE_PRIORITY 	4
-
+#define BEHAVIORS	6
+#define DIE_PRIORITY	0
+#define AVOID_PRIORITY 	1	
+#define RELOAD_PRIORITY 2	
+#define FORAGE_PRIORITY	3	
+#define FOLLOW_SCENT 	4	
+#define NAVIGATE_PRIORITY 5 	
+ 		
 /* Threshold to avoid obstacles */
 #define PROXIMITY_THRESHOLD 0.3
 /* Threshold to define the battery discharged */
@@ -182,10 +182,11 @@ void CIri1Controller::ExecuteBehaviors ( void )
 
 	
 	ObstacleAvoidance ( AVOID_PRIORITY );
-	GoLoad ( RELOAD_PRIORITY );
+	TakeABreak( RELOAD_PRIORITY );
 	Forage ( FORAGE_PRIORITY );
 	FollowScent(FOLLOW_SCENT);
 	Navigate ( NAVIGATE_PRIORITY );
+	Die ( DIE_PRIORITY );
 }
 
 /******************************************************************************/
@@ -337,7 +338,7 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 /******************************************************************************/
 /******************************************************************************/
 
-void CIri1Controller::GoLoad 	 ( unsigned int un_priority )
+void CIri1Controller::TakeABreak	 ( unsigned int un_priority )
 {
 	/* Leer Battery Sensores */
 	double* bluebattery = m_seBlueBattery->GetSensorReading(m_pcEpuck);
@@ -576,10 +577,15 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
 /*void CIri1Controller::Ofrenda(unsigned int un_priority){
 
 }
-
+*/
 void CIri1Controller::Die(unsigned int un_priority){
-
-}*/
+	/* Leer Battery Sensores */
+	double* lifebattery = m_seBlueBattery->GetSensorReading(m_pcEpuck);
+	if ( lifebattery[0] <= 0){
+	parada = 0;
+	m_fActivationTable[un_priority][2] = 1;
+				}
+}
 
 double* CIri1Controller::calcDirection(double* light){
 	double fMaxLight = 0.0;
