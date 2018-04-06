@@ -54,6 +54,7 @@ using namespace std;
 #define FOLLOW_SCENT 	5	
 #define NAVIGATE_PRIORITY 6 
 	
+
  		
 /* Threshold to avoid obstacles */
 #define PROXIMITY_THRESHOLD 0.3
@@ -195,6 +196,7 @@ void CIri1Controller::ExecuteBehaviors ( void )
 	Navigate ( NAVIGATE_PRIORITY );
 	Die ( DIE_PRIORITY );
 	Ofrenda (OFRENDA_PRIORITY);  
+
 }
 
 /******************************************************************************/
@@ -678,7 +680,9 @@ void CIri1Controller::Die(unsigned int un_priority){
 	m_fActivationTable[un_priority][2] = 1;
 
 
+
 	m_pcEpuck->SetAllColoredLeds(	LED_COLOR_BLACK);
+
 				}
 }
 
