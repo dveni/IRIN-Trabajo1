@@ -50,11 +50,12 @@ private:
 		//Inhibitor
   		double 		AvoidInhibitor;
 		double    fBattToForageInhibitor;
-	    	double		followScentInhibitor;	
+	    double		followScentInhibitor;	
+	    double		ofrendaInhibitor;
+
 	    	int 		mochila;
  		//ofrenda
-		double  God;
-		double  changegroundsensors;
+		double  honey;
 		double carga_lastStep2;
 		double carga_actual2;
 		double flag_god;

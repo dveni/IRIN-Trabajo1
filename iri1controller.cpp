@@ -63,7 +63,9 @@ using namespace std;
 /* Threshold to reduce the speed of the robot */
 #define NAVIGATE_LIGHT_THRESHOLD 0.9
 
-#define SPEED 800
+#define SPEED 1000
+
+#define OFRENDAS_NECESARIAS 1
 
 
 /******************************************************************************/
@@ -105,12 +107,13 @@ CIri1Controller::CIri1Controller (const char* pch_name, CEpuck* pc_epuck, int n_
 	m_fRightSpeed = 0.0;
   fBattToForageInhibitor = 1.0;
   followScentInhibitor = 1.0;
+  ofrendaInhibitor = 1.0;
   mochila=0;
   parada = 1;
   carga_lastStep =1;
 	carga_lastStep2 =1;
-changegroundsensors =1;
-God=0;
+
+honey=0;
 AvoidInhibitor = 1;
 
 	m_fActivationTable = new double* [BEHAVIORS];
@@ -149,6 +152,9 @@ void CIri1Controller::SimulationStep(unsigned n_step_number, double f_time, doub
 	/* Set Speed to wheels */
 	m_acWheels->SetSpeed(m_fLeftSpeed, m_fRightSpeed);
 
+	printf("Mochila: %i\n", mochila);
+	printf("Honey: %2f\n", honey);
+
 	if (m_nWriteToFile ) 
 	{
 	/* INIT: WRITE TO FILES */
@@ -182,20 +188,22 @@ void CIri1Controller::ExecuteBehaviors ( void )
 	fBattToForageInhibitor = 1.0;
 	AvoidInhibitor = 1.0;
 	followScentInhibitor = 1.0;
+	ofrendaInhibitor = 1.0;
 	/* Set Leds to BLACK */
 	m_pcEpuck->SetAllColoredLeds(	LED_COLOR_YELLOW);
 
 
 
 
-	
+	Die ( DIE_PRIORITY );
 	ObstacleAvoidance ( AVOID_PRIORITY );
+	Ofrenda (OFRENDA_PRIORITY);
 	TakeABreak( RELOAD_PRIORITY );
 	Forage ( FORAGE_PRIORITY );
 	FollowScent(FOLLOW_SCENT);
 	Navigate ( NAVIGATE_PRIORITY );
-	Die ( DIE_PRIORITY );
-	Ofrenda (OFRENDA_PRIORITY);  
+	
+	  
 
 }
 
@@ -333,19 +341,7 @@ void CIri1Controller::Navigate ( unsigned int un_priority )
 	m_fActivationTable[un_priority][1] = 0.5;
 	m_fActivationTable[un_priority][2] = 1.0;
 
-	/* Leer sensores de suelo*/
-	double* groundsensors = new double[3];
-	groundsensors = m_seGround->GetSensorReading(m_pcEpuck);
-
-	double ground;
-
-	for(int i =0; i<3;i++){
-		ground += groundsensors[i];
-	}
-	if (ground != changegroundsensors && ground != 1){
-		God++;
-		ground = changegroundsensors;
-	}
+	
 
 	if (m_nWriteToFile ) 
 	{
@@ -411,7 +407,7 @@ void CIri1Controller::TakeABreak	 ( unsigned int un_priority )
 
 	}else { flagstop = 0;}
 	/* If bluebattery below a BATTERY_THRESHOLD */
-	if ( AvoidInhibitor == 1 &&  bluebattery[0] < BATTERY_THRESHOLD )
+	if ( ofrendaInhibitor ==1 && AvoidInhibitor == 1 &&  bluebattery[0] < BATTERY_THRESHOLD )
 		{ 
 		if (bluebattery[0] < 0.9 && flagstop == 0) {
 			parada = 0;
@@ -496,13 +492,14 @@ void CIri1Controller::Forage ( unsigned int un_priority )
   m_fActivationTable[un_priority][1] = 1 - fMaxLight;
   
   
-  if(ground < 0.5){
+  if(mochila ==1 && ground < 0.5){		//si pasa por zona negra teniendo polen
   	mochila =0;
+  	honey++;
   }
 
 
   /* If with a virtual puck */
-	if ( AvoidInhibitor == 1 && ( mochila * fBattToForageInhibitor ) == 1.0 )
+	if ( ofrendaInhibitor==1 && AvoidInhibitor == 1 && ( mochila * fBattToForageInhibitor ) == 1.0 )
 	{
 		/* FollowScent inhibitor */
 		followScentInhibitor = 0.0;
@@ -573,7 +570,7 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
   m_fActivationTable[un_priority][1] = fMaxLight;
 
 	/* If battery below a BATTERY_THRESHOLD */
-	if ( (AvoidInhibitor* fMaxLight*followScentInhibitor) >0 ){
+	if ( ( AvoidInhibitor* fMaxLight*followScentInhibitor) >0 ){
     /* Inibit Forage */
 	//	fBattToForageInhibitor = 0.0;
 		/* Set Leds to RED */
@@ -611,6 +608,16 @@ void CIri1Controller::Ofrenda(unsigned int un_priority){
 	double fMaxLight = 0.0;
 	const double* lightDirections = m_seLight->GetSensorDirections();
 
+	/* Leer sensores de suelo*/
+	double* groundsensors = new double[3];
+	groundsensors = m_seGround->GetSensorReading(m_pcEpuck);
+
+	double ground;
+
+	for(int i =0; i<3;i++){
+		ground += groundsensors[i];
+	}
+
   /* We call vRepelent to go similar to Obstacle Avoidance, although it is an aproaching vector */
 	dVector2 vRepelent;
 	vRepelent.x = 0.0;
@@ -637,39 +644,52 @@ void CIri1Controller::Ofrenda(unsigned int un_priority){
   m_fActivationTable[un_priority][1] = fMaxLight;
 	
  	carga_actual2 = battery[0];
+ 	printf("Gracia del dios Abejonejo (Nivel batería amarilla): %2f\n", carga_actual2);
  		
-if (carga_actual2 <= carga_lastStep2){
+if (carga_actual2 <= carga_lastStep2  ){
  		carga_lastStep2 = carga_actual2;
  		flag_god = 1;
 
 	}else { flag_god = 0;}
 	/* If battery below a BATTERY_THRESHOLD por tanto tras 4 viajes */
-	if ( God == 5 )
+	if ( honey == OFRENDAS_NECESARIAS && AvoidInhibitor)
 	{ 
 
-	/* If bluebattery below a BATTERY_THRESHOLD */
-		if (battery[0] < 0.9 && flag_god == 0) {
-			God = 0;
-			carga_lastStep2 = 1;
+	///* If bluebattery below a BATTERY_THRESHOLD */
+	//	if (battery[0] < 0.9 && flag_god == 0) {
+	//		honey = 0;
+	//		carga_lastStep2 = 1;
     /* Inibit Procesos */
 		followScentInhibitor = 0.0;
 		fBattToForageInhibitor = 0.0;
+		ofrendaInhibitor = 0.0;
 		/* Set Leds to RED */
-		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_RED);
-		
+		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_LIGHT_BLUE);
+	//	
     /* Mark behavior as active */
     m_fActivationTable[un_priority][2] = 1.0;
+
+   	if(!flag_god ){
+   		parada = 0;
+   		
+   		/* Set Leds to RED */
+		m_pcEpuck->SetAllColoredLeds(	LED_COLOR_WHITE);		//se para durante la ofrenda y se "ilumina"
+   	if(battery[0]>0.9)
+		parada =1;
+		honey=0;
 	}	
+
 	}
-	if (m_nWriteToFile ) 
-	{
-		/* INIT WRITE TO FILE */
-		FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
-		fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
-		fclose(fileOutput);
-		/* END WRITE TO FILE */
-	}
+	
+	//if (m_nWriteToFile ) 
+	//{
+	//	/* INIT WRITE TO FILE */
+	//	FILE* fileOutput = fopen("outputFiles/batteryOutput", "a");
+	//	fprintf(fileOutput, "%2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f %2.4f ", m_fTime, battery[0], light[0], light[1], light[2], light[3], light[4], light[5], light[6], light[7]);
+	//	fprintf(fileOutput, "%2.4f %2.4f %2.4f\n",m_fActivationTable[un_priority][2], m_fActivationTable[un_priority][0], m_fActivationTable[un_priority][1]);
+	//	fclose(fileOutput);
+	//	/* END WRITE TO FILE */
+	//}
 }
 
 void CIri1Controller::Die(unsigned int un_priority){
