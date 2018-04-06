@@ -52,18 +52,26 @@ private:
 		double    fBattToForageInhibitor;
 	    	double		followScentInhibitor;	
 	    	int 		mochila;
+ 		//ofrenda
+		double  God;
+		double  changegroundsensors;
+		double carga_lastStep2;
+		double carga_actual2;
+		double flag_god;
+		
 		/* Functions */
+
 
 		void ExecuteBehaviors ( void );
 		void Coordinator ( void );
 
 		void ObstacleAvoidance ( unsigned int un_priority );
 		void Navigate ( unsigned int un_priority );
-		void GoLoad ( unsigned int un_priority );
+		void TakeABreak ( unsigned int un_priority );
 		void Forage ( unsigned int un_priority );
 		void FollowScent (unsigned int un_priority);
 		void Ofrenda(unsigned int un_priority);
-
+		void Die(unsigned int un_priority);
 		double* calcDirection(double* light);
 };
 

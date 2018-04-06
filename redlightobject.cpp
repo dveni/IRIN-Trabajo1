@@ -128,10 +128,11 @@ int CRedLightObject::GetTiming ( unsigned int n_step_number )
 {
 
 	/* Create sequence */
-	if ( !(n_step_number % 110) )
+	if ( !(n_step_number % 20000) )
 	{
 		/* toggle light */
 		//m_nActivation ^= 0x1;
+		m_nActivation = true;
 	}
 
 	/* default return true */
