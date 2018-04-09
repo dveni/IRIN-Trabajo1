@@ -302,11 +302,11 @@ void CIri1Controller::SimulationStep(unsigned n_step_number, double f_time, doub
 	/* Da velocidad a las ruedas */
 	m_acWheels->SetSpeed(m_fLeftSpeed, m_fRightSpeed);
 
+	
 	printf("Mochila: %i\n", mochila);
 	printf("Honey: %2f\n", honey);
 	printf("Nivel batería: %2f\n", carga_actual);
-	printf("Flagstop:%2f\n", flagstop);
-
+	
 	if (m_nWriteToFile ) 
 	{
 	/* INIT: WRITE TO FILES */
@@ -930,6 +930,7 @@ void CIri1Controller::GoGoal ( unsigned int un_priority )
   {
     /* Enable Inhibitor to Forage */
     fGoalToForageInhibitor = 0.0;
+    followScentInhibitor = 0.0;
 
     /* If something not found at the end of planning, reset plans */
     if (m_nState >= m_nPathPlanningStops )
@@ -1006,7 +1007,12 @@ void CIri1Controller::FollowScent 	 ( unsigned int un_priority )
 		/* Si pasa por zona gris, coge polen */
 		if(groundColor(ground)==GROUND_COLOR_GREY && fMaxLight>0.7){
 			mochila = 1;
-			m_seRedLight->SwitchNearestLight(0);
+			
+			srand(time(NULL));
+			int aux = rand()%100;
+			printf("Random: %i\n", aux);
+			if(aux<50)
+				m_seRedLight->SwitchNearestLight(0);
 		}
 		
     	/* Activamos el comportamiento */
