@@ -418,8 +418,10 @@ void CIri1Controller::Coordinator ( void )
 		/* INIT: WRITE TO FILES */
 		/* Write coordinator ouputs */
 		FILE* fileOutput = fopen("outputFiles/coordinatorOutput", "a");
-		fprintf(fileOutput,"%2.4f %d %2.4f %2.4f \n", m_fTime, nBehavior, m_fLeftSpeed, m_fRightSpeed);
+		fprintf(fileOutput,"%2.4f %d %2.4f %2.4f %2.4f %2.4f %d %d %2.4f \n", 
+			m_fTime, nBehavior, m_fLeftSpeed, m_fRightSpeed, m_vPosition.x, m_vPosition.y, honey, parada, carga_actual);
 		fclose(fileOutput);
+		
 		/* END WRITE TO FILES */
 	}
 }
@@ -904,7 +906,7 @@ void CIri1Controller::PathPlanning ( unsigned int un_priority )
     for (int i = 0 ; i < m_nPathPlanningStops ; i++)
     {
       /* Traslation */ 
-      m_vPositionsPlanning[i].x += ( (robotStartGridX * fXmov) - (mapGridX * fXmov)/2 );
+      m_vPositionsPlanning[i].x -= ( (robotStartGridX * fXmov) - (mapGridX * fXmov)/2 );
       m_vPositionsPlanning[i].y += ( (robotStartGridY * fXmov) - (mapGridY * fYmov)/2);
       /* Rotation */
       //double compass = m_pcEpuck->GetRotation();
